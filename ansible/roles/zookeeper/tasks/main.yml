@@ -1,0 +1,90 @@
+---
+- name: update apt 
+  apt: update_cache=yes cache_valid_time={{apt_cache_timeout}}
+  tags: bootstrap
+
+- name: create group for zookeeper
+  group:
+    name: zookeeper
+    state: present
+  tags: zookeeper
+
+- name: create user for zookeeper
+  user:
+    name: zookeeper
+    group: zookeeper
+  tags: zookeeper
+
+- name: setup for zookeper download path
+  set_fact:
+    zookeeper_name: zookeeper-{{ zookeeper.version }}
+  tags: zookeeper
+
+- name: setup for zookeeper download dir
+  set_fact:
+    zookeeper_dir: "{{ zookeeper.install_dir }}/{{ zookeeper_name }}"
+  tags: zookeeper
+
+- name: Download Zookeeper 
+  get_url:
+    url: "{{ zookeeper.mirror }}/zookeeper/{{ zookeeper_name }}/{{ zookeeper_name }}.tar.gz"
+    dest: "{{ zookeeper.download_dir }}/{{ zookeeper_name }}.tar.gz"
+    mode: 0644
+    force: no
+  tags: zookeeper
+
+- name: untar zookeeper
+  shell: tar -xzvf {{ zookeeper.download_dir }}/{{ zookeeper_name }}.tar.gz chdir={{ zookeeper.download_dir }}/ creates={{ zookeeper.download_dir }}/{{ zookeeper_name }}
+  tags: zookeeper
+
+- name: setup config file
+  template:
+    src: zoo.cfg.j2
+    dest: "{{ zookeeper.download_dir }}/{{ zookeeper_name }}/conf/zoo.cfg"
+  tags: zookeeper
+
+- name: change config file permission
+  shell: chmod 0644 {{ zookeeper.download_dir }}/{{ zookeeper_name }}/conf/zoo.cfg
+  tags: zookeeper
+
+- name: Copy zookeeper to  destination
+  shell: mv {{ zookeeper.download_dir }}/{{ zookeeper_name }} {{ zookeeper_dir }} creates={{ zookeeper_dir }}
+  tags: zookeeper
+
+- name: check zookeeper data dir
+  stat: path={{ zookeeper.data_dir }}
+  register: check_path
+  tags: zookeeper
+
+- shell: create zookeeper data dir
+  when: check_path.stat.exists == false
+  tags: zookeeper
+
+- name: configure myid file
+  template:
+    src: myid.j2
+    dest: "{{ zookeeper.data_dir }}/myid" 
+  tags: zookeeper
+
+- name: Link {{ zookeeper.install_dir }}/zookeeper to this version
+  shell: ln -s {{ zookeeper_name }} zookeeper chdir={{ zookeeper.install_dir}} creates={{ zookeeper.install_dir }}/zookeeper
+  tags: zookeeper
+
+- name: copy zookeeper service file
+  template:
+    src: zookeeper-service.j2
+    dest: "/etc/init.d/zookeeper"
+    mode: 0755
+  notify: start zookeeper
+  tags: zookeeper
+
+- name: start zookeeper
+  service: name=zookeeper state=started
+  tags: zookeeper
+
+- name: check zookeeper running status
+  shell: netstat -tunlp | grep ":{{ client_port }} "
+  register: results
+
+- name: debug result
+  debug: var=results.stdout
