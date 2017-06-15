@@ -1,3 +1,0 @@
-jdk_version: '8'
-symlnk_path: 'java{{ jdk_version }}'
-accept_oracle_licence: true
