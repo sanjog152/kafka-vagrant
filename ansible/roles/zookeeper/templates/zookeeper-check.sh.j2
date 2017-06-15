@@ -1,0 +1,13 @@
+#!/bin/bash
+service="Dzookeeper"
+email="{{ alert_email }}"
+echoerr() { printf "%s\n" "$*" >&2; }
+if (( $(ps -ef | grep -v grep | grep $service | wc -l) > 0 ))
+then
+log=1
+#echo "$service is running!!!"
+else
+log=1
+#echoerr zookeeper is not running
+ssmtp $email < /home/vagrant/email_text_zookeeper.txt
+fi

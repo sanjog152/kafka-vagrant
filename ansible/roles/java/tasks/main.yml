@@ -1,0 +1,45 @@
+---
+- name: check if java installed
+  command: java -version
+  register: java_version
+  failed_when: java_version.rc not in [0, 1, 2]
+  changed_when: False
+  tags: java
+
+- name: add ppa for jre
+  apt_repository: repo=ppa:webupd8team/java state=present
+  tags: java
+  when: java_version.rc == 2
+
+- name: accept oracle license
+  shell: echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+  tags: java
+  when: java_version.rc == 2
+
+
+- name: install jre
+  apt: pkg=oracle-java{{ jdk_version }}-installer state=latest update-cache=yes force=no
+  tags: java
+  when: java_version.rc == 2
+
+- name: install mail
+  apt: pkg=mailutils state=latest update-cache=yes force=yes
+  tags: java
+
+- name: install ssmtp
+  apt: pkg=ssmtp state=latest update-cache=yes force=yes
+  tags: java
+
+- name: copy ssmtp config file
+  template:
+    src: ssmtp.conf.j2
+    dest: "/etc/ssmtp/ssmtp.conf"
+    mode: 0644
+  tags: java
+
+- name: install sendmail
+  apt: pkg=sendmail state=latest update-cache=yes force=yes
+  tags: java
+
+- name: debug msg
+  debug: msg=java-{{ jdk_version }}-oracle
