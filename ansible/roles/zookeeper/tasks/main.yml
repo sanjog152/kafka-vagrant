@@ -83,13 +83,6 @@
   service: name=zookeeper state=started
   tags: zookeeper
 
-- name: check zookeeper running status
-  shell: netstat -tunlp | grep ":{{ client_port }} "
-  register: results
-
-- name: debug result
-  debug: var=results.stdout
-
 - name: copy zookeeper service cron
   template:
     src: zookeeper-check.sh.j2
