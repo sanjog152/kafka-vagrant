@@ -9,5 +9,5 @@ log=1
 else
 log=1
 #echoerr zookeeper is not running
-ssmtp $email < /home/vagrant/email_text_kafka.txt
+mail -s "Kakfa service is not running on {{ kafka_hostname }}" $email 
 fi
